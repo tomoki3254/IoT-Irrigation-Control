@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>新規登録</title>
+  <style>
+    :root{
+      --bg:#eef4f8;
+      --card:#ffffff;
+      --text:#1f2d3d;
+      --muted:#6b7a8c;
+      --line:#d7e2ec;
+      --primary:#4da3ff;
+      --primary-weak:#eaf4ff;
+      --danger:#e35d6a;
+      --shadow:0 16px 40px rgba(30,60,90,.10);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:20px;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:radial-gradient(circle at top left,#f8fbff 0%,#eef4f8 45%,#e6eef5 100%);
+      color:var(--text);
+    }
+
+    .card{
+      width:min(460px,94vw);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:24px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .brand-mark{
+      width:38px;
+      height:38px;
+      border-radius:12px;
+      display:grid;
+      place-items:center;
+      background:linear-gradient(135deg,#6fc1ff,#4da3ff);
+      color:#fff;
+      font-weight:900;
+      box-shadow:0 8px 18px rgba(77,163,255,.28);
+    }
+
+    h1{
+      margin:0;
+      font-size:22px;
+      color:var(--text);
+    }
+
+    .sub{
+      margin:8px 0 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+
+    .row{margin-top:14px;}
+
+    .label{
+      display:block;
+      margin-bottom:7px;
+      font-size:13px;
+      font-weight:700;
+      color:var(--text);
+    }
+
+    input{
+      width:100%;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      outline:none;
+      font-size:14px;
+      transition:.18s ease;
+    }
+
+    input:focus{
+      border-color:#7ab9ff;
+      box-shadow:0 0 0 4px rgba(77,163,255,.12);
+    }
+
+    button{
+      width:100%;
+      margin-top:18px;
+      padding:12px 16px;
+      border:none;
+      border-radius:14px;
+      background:linear-gradient(135deg,#62b4ff,#4da3ff);
+      color:#fff;
+      font-weight:800;
+      font-size:14px;
+      cursor:pointer;
+      transition:transform .08s ease, opacity .18s ease;
+      box-shadow:0 10px 24px rgba(77,163,255,.28);
+    }
+
+    button:hover{opacity:.96;}
+    button:active{transform:translateY(1px);}
+
+    a{
+      color:var(--primary);
+      text-decoration:none;
+      font-weight:700;
+    }
+
+    a:hover{text-decoration:underline;}
+
+    .err{
+      margin-top:12px;
+      padding:11px 13px;
+      border-radius:12px;
+      border:1px solid rgba(227,93,106,.22);
+      background:#fff1f3;
+      color:var(--danger);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .note{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:14px;
+      background:var(--primary-weak);
+      border:1px solid #d7e9ff;
+      color:#47627d;
+      font-size:13px;
+      line-height:1.6;
+    }
+
+    .foot{
+      margin-top:14px;
+      font-size:13px;
+      color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <form class="card" method="post" action="/signup">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div>
+        <h1>新規登録</h1>
+      </div>
+    </div>
+
+    <p class="sub">
+      利用者アカウントを作成します。登録後は管理者による権限設定が必要です。
+    </p>
+
+    <div class="row">
+      <label class="label">メールアドレス</label>
+      <input name="email" autocomplete="username" required>
+    </div>
+
+    <div class="row">
+      <label class="label">パスワード（6文字以上）</label>
+      <input type="password" name="password" autocomplete="new-password" required>
+    </div>
+
+    <div class="row">
+      <label class="label">パスワード（確認）</label>
+      <input type="password" name="password2" autocomplete="new-password" required>
+    </div>
+
+    {% if error %}
+      <div class="err">{{ error }}</div>
+    {% endif %}
+
+    <button type="submit">登録</button>
+
+    <div class="note">
+      登録直後は承認待ちになります。管理者が <b>farmer</b> または <b>area_admin</b> に振り分けた後、利用できるようになります。
+    </div>
+
+    <div class="foot">
+      すでに登録済み？ <a href="/login">ログイン</a>
+    </div>
+  </form>
+</body>
+</html>

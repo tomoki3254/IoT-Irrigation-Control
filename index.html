@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>全国センサー管理</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f5f7fb;
+    --panel:#f8fafc;
+    --card:#ffffff;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --line:#dbe4f0;
+    --soft:#eef4fb;
+    --brand:#2563eb;
+    --brand-soft:#dbeafe;
+    --ok:#16a34a;
+    --ok-soft:#dcfce7;
+    --warn:#d97706;
+    --warn-soft:#fef3c7;
+    --bad:#dc2626;
+    --bad-soft:#fee2e2;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --radius:16px;
+  }
+
+  *{box-sizing:border-box}
+
+  html, body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
+  }
+
+  body{
+    background:
+      radial-gradient(900px 420px at 0% 0%, rgba(37,99,235,.08), transparent 55%),
+      radial-gradient(900px 420px at 100% 0%, rgba(14,165,233,.06), transparent 55%),
+      var(--bg);
+  }
+
+  header{
+    height:72px;
+    background:rgba(255,255,255,.9);
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 14px;
+    position:sticky;
+    top:0;
+    z-index:999;
+    backdrop-filter:blur(10px);
+  }
+
+  .brand{
+    font-weight:1000;
+    letter-spacing:.3px;
+    color:var(--ink);
+    white-space:nowrap;
+  }
+
+  .hint{
+    color:var(--muted);
+    font-size:.9rem;
+    margin-left:auto;
+    white-space:nowrap;
+  }
+
+  .search-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width:min(560px, 60vw);
+  }
+
+  .search{
+    flex:1;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    outline:none;
+    background:#fff;
+    color:var(--ink);
+    font-weight:600;
+  }
+
+  .btn{
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    border-radius:12px;
+    padding:9px 12px;
+    cursor:pointer;
+    font-weight:900;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    box-shadow:0 1px 2px rgba(15,23,42,.03);
+  }
+  .btn:hover{ filter:brightness(.98); }
+  .btn:active{ transform:translateY(1px); }
+
+  .btn.primary{
+    background:var(--brand);
+    border-color:var(--brand);
+    color:#fff;
+  }
+  .btn.secondary{
+    background:var(--brand-soft);
+    border-color:#bfdbfe;
+    color:#1d4ed8;
+  }
+  .btn.ok{
+    background:var(--ok-soft);
+    border-color:#bbf7d0;
+    color:#166534;
+  }
+  .btn.warn{
+    background:var(--warn-soft);
+    border-color:#fde68a;
+    color:#92400e;
+  }
+  .btn.danger{
+    background:var(--bad-soft);
+    border-color:#fecaca;
+    color:#991b1b;
+  }
+
+  #map{
+    height:calc(100vh - 72px);
+  }
+
+  #panel{
+    position:fixed;
+    inset:0;
+    background:var(--panel);
+    z-index:2000;
+    display:none;
+    flex-direction:column;
+  }
+
+  .panel-header{
+    background:rgba(255,255,255,.92);
+    border-bottom:1px solid var(--line);
+    padding:14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    backdrop-filter:blur(10px);
+  }
+
+  .panel-title{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:0;
+  }
+
+  .panel-title .name{
+    font-weight:1000;
+    font-size:1.08rem;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .panel-title .meta{
+    font-size:.85rem;
+    color:var(--muted);
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  .pill{
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:999px;
+    padding:3px 10px;
+    font-size:.8rem;
+  }
+
+  .mono{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .panel-body{
+    padding:16px;
+    overflow:auto;
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:14px;
+    box-shadow:var(--shadow);
+  }
+
+  .card h2{
+    margin:0 0 10px 0;
+    font-size:13px;
+    letter-spacing:.4px;
+    color:var(--brand);
+  }
+
+  .grid-kpi{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:10px;
+  }
+  @media (min-width: 900px){
+    .grid-kpi{ grid-template-columns:repeat(4, 1fr); }
+  }
+
+  .kpi{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    background:var(--soft);
+  }
+  .kpi .label{
+    color:var(--muted);
+    font-size:.78rem;
+  }
+  .kpi .value{
+    font-size:1.6rem;
+    font-weight:1000;
+    margin-top:2px;
+  }
+  .kpi .sub{
+    color:var(--muted);
+    font-size:.8rem;
+    margin-top:6px;
+  }
+
+  .row-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .formRow{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  @media (max-width: 760px){
+    .formRow{ grid-template-columns:1fr; }
+  }
+
+  .label{
+    font-size:.85rem;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+
+  .input, select.input{
+    width:100%;
+    background:#fff;
+    color:var(--ink);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 10px;
+    font-weight:700;
+    outline:none;
+  }
+
+  .tiny{
+    font-size:12px;
+    color:var(--muted);
+    line-height:1.65;
+  }
+
+  .fc{
+    --fc-page-bg-color: transparent;
+    --fc-border-color: var(--line);
+    --fc-today-bg-color: #eff6ff;
+    --fc-neutral-bg-color: #fff;
+    --fc-event-border-color: #93c5fd;
+    --fc-event-bg-color: #dbeafe;
+    --fc-event-text-color: #1e3a8a;
+    color:var(--ink);
+  }
+  .fc .fc-toolbar-title{
+    font-size:14px;
+    font-weight:1000;
+  }
+  .fc .fc-button{
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--ink);
+    border-radius:10px;
+    padding:6px 10px;
+  }
+
+  .modalBg{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.35);
+    display:none;
+    place-items:center;
+    padding:16px;
+    z-index:3000;
+  }
+
+  .modal{
+    width:min(620px, 96vw);
+    border:1px solid var(--line);
+    border-radius:18px;
+    background:#fff;
+    box-shadow:0 20px 60px rgba(15,23,42,.18);
+    padding:16px;
+  }
+
+  .modalHead{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .modalHead h3{
+    margin:0;
+    font-size:15px;
+    letter-spacing:.3px;
+  }
+
+  .xbtn{
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    border-radius:10px;
+    padding:6px 10px;
+    font-weight:1000;
+  }
+
+  .formGrid{
+    display:grid;
+    grid-template-columns:1.2fr .9fr .9fr;
+    gap:10px;
+    align-items:end;
+  }
+  @media (max-width:520px){
+    .formGrid{ grid-template-columns:1fr; }
+  }
+
+  .modalActions{
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    margin-top:12px;
+  }
+
+  .statusBox{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:10px;
+  }
+  @media (max-width:760px){
+    .statusBox{ grid-template-columns:1fr; }
+  }
+
+  .statusMini{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    background:var(--soft);
+  }
+  .statusMini .slabel{
+    color:var(--muted);
+    font-size:.78rem;
+  }
+  .statusMini .svalue{
+    margin-top:6px;
+    font-size:1.1rem;
+    font-weight:1000;
+  }
+
+  .state-open{ color:var(--ok); }
+  .state-close{ color:var(--bad); }
+  .state-warn{ color:var(--warn); }
+
+  canvas{
+    width:100% !important;
+    height:260px !important;
+  }
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">🌐 全国センサー管理</div>
+
+  <div class="search-wrap">
+    <input id="search" class="search" placeholder="ID番号 or 名前で検索（例: 12 / 笠間 / 圃場A）">
+    <button class="btn primary" onclick="searchDevice()">検索</button>
+  </div>
+
+  <button class="btn secondary" onclick="openAddByCoord()">RTK/座標で追加</button>
+
+  <a href="/logout" class="btn">ログアウト</a>
+  <a class="btn" href="/admin">管理者</a>
+  <a href="/predict" class="btn primary">通信強度予測</a>
+
+  <div class="hint">地図クリックで追加 / 右クリック or 3回タップで削除</div>
+</header>
+
+<div id="map"></div>
+
+<div id="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <div class="name" id="panelName">--</div>
+      <div class="meta">
+        <span class="pill mono" id="panelId">ID: --</span>
+        <span class="pill" id="panelTpl">TPL: --</span>
+        <span class="pill mono" id="panelPos">--</span>
+        <span class="pill" id="panelAge">更新: --</span>
+      </div>
+    </div>
+
+    <div class="row-actions">
+      <button class="btn warn" onclick="openMoveModal()">ピン移動</button>
+      <button class="btn danger" onclick="deleteCurrent()">削除</button>
+      <a href="/logout" class="btn">ログアウト</a>
+      <button class="btn" onclick="closePanel()">閉じる</button>
+    </div>
+  </div>
+
+  <div class="panel-body">
+    <div class="card">
+      <h2>設定（名前 / 機械種別 / メモ）</h2>
+      <div class="formRow">
+        <div>
+          <div class="label">表示名</div>
+          <input id="setName" class="input" placeholder="例：笠間_みかん畑A">
+        </div>
+        <div>
+          <div class="label">機械種別（テンプレ）</div>
+          <select id="setTpl" class="input">
+            <option value="A">A（灌水：水分 + 通信 + 制御 + スケジュール）</option>
+            <option value="B">B（通信：RSSI/Noise中心）</option>
+            <option value="C">C（タンク/制御）</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="label">メモ</div>
+        <input id="setNote" class="input" placeholder="例：北側列 / バルブ1 / 井戸近く">
+      </div>
+      <div class="row-actions" style="justify-content:flex-end; margin-top:10px;">
+        <button class="btn primary" onclick="saveSettings()">保存</button>
+      </div>
+      <div class="tiny">※ 追加時に決められなくても、ここで後から変更できる。</div>
+    </div>
+
+    <div class="card">
+      <h2>ステータス（最新）</h2>
+      <div id="kpiGrid" class="grid-kpi"></div>
+      <div class="tiny" style="margin-top:8px;">
+        ※ /api/telemetry/&lt;pin_id&gt; の最新値（soil / rssi_up / rssi_down / noise）
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>バルブ状態 / データ出力</h2>
+      <div class="statusBox">
+        <div class="statusMini">
+          <div class="slabel">現在のバルブ状態</div>
+          <div class="svalue" id="valveStateText">--</div>
+        </div>
+        <div class="statusMini">
+          <div class="slabel">状態の根拠</div>
+          <div class="svalue" id="valveStateSource">--</div>
+        </div>
+        <div class="statusMini">
+          <div class="slabel">最終反映時刻</div>
+          <div class="svalue" id="valveStateUpdated">--</div>
+        </div>
+      </div>
+
+      <div class="row-actions" style="margin-top:12px;">
+        <button class="btn ok" onclick="exportCsv()">CSVエクスポート</button>
+      </div>
+
+      <div class="tiny" style="margin-top:8px;">
+        ※ バルブ状態は command / ack / schedule / latest をもとに表示しています。<br>
+        ※ 実機から「現在開いている/閉じている」を返していないため、一部は推定表示になります。
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>グラフ（時系列）</h2>
+      <div class="tiny">※ /api/logs/&lt;pin_id&gt; から直近ログを表示</div>
+      <div style="margin-top:10px;">
+        <div class="label">土壌水分（Soil）</div>
+        <canvas id="soilChart"></canvas>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="label">通信強度 & ノイズ（RSSI↑ / RSSI↓ / Noise）</div>
+        <canvas id="rfChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>灌水制御</h2>
+
+      <div class="formRow">
+        <div>
+          <div class="label">手動バルブ</div>
+          <div class="row-actions">
+            <button class="btn primary" onclick="setValve(1)">ON</button>
+            <button class="btn danger" onclick="setValve(0)">OFF</button>
+          </div>
+          <div class="tiny" style="margin-top:8px;">
+            ※ 機械側は /api/device/command/&lt;pin_id&gt; をポーリングして pending=true の時だけ実行（cmd_id変化で実行）
+          </div>
+        </div>
+
+        <div>
+          <div class="label">OFFタイマー（分）</div>
+          <div class="row-actions" style="gap:10px;">
+            <input id="durationMin" class="input" type="number" min="1" max="180" value="3">
+            <button class="btn primary" onclick="setTimer()">設定</button>
+          </div>
+          <div class="tiny" style="margin-top:8px;">duration_sec として送る（例：3分=180秒）</div>
+        </div>
+      </div>
+
+      <div class="formRow" style="margin-top:10px;">
+        <div>
+          <div class="label">土壌水分 閾値（任意）</div>
+          <div class="row-actions" style="gap:10px;">
+            <input id="threshold" class="input" type="number" placeholder="例: 35">
+            <button class="btn primary" onclick="setThreshold()">設定</button>
+          </div>
+          <div class="tiny" style="margin-top:8px;">※ 閾値はサーバ保持 / 機械側が自動判定に使う</div>
+        </div>
+
+        <div>
+          <div class="label">現在の命令（サーバ保持 + ACK）</div>
+          <pre id="cmdJson" class="mono" style="white-space:pre-wrap; margin:0; font-size:12px; color:#334155;"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>スケジュール（月カレンダー）</h2>
+      <div class="tiny">
+        ・日付クリック → 追加（時刻/分数）<br>
+        ・予定クリック → 削除<br>
+        ✅ JSTズレ対策：サーバは「TZ無し(YYYY-MM-DDTHH:MM:SS)」で保存 → FullCalendarへも文字列で渡す
+      </div>
+      <div id="calendar" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>（開発用）DBデータ</h2>
+      <pre id="debugJson" class="mono" style="white-space:pre-wrap; margin:0; font-size:12px; color:#334155;"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="addModalBg" class="modalBg" onclick="closeAddModalIfBg(event)">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3>RTK/座標で追加</h3>
+      <button class="xbtn" onclick="closeAddModal()">✕</button>
+    </div>
+
+    <div class="label">表示名</div>
+    <input id="mName" class="input" placeholder="例：笠間_みかん畑A">
+
+    <div class="formRow" style="margin-top:10px;">
+      <div>
+        <div class="label">機械種別（テンプレ）</div>
+        <select id="mTpl" class="input">
+          <option value="A">A（灌水）</option>
+          <option value="B">B（通信）</option>
+          <option value="C">C（タンク/制御）</option>
+        </select>
+      </div>
+      <div>
+        <div class="label">メモ</div>
+        <input id="mNote" class="input" placeholder="任意">
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2 style="margin-bottom:8px;">緯度経度（WGS84）</h2>
+      <div class="formRow">
+        <div>
+          <div class="label">緯度 lat</div>
+          <input id="mLat" class="input" placeholder="36.123456">
+        </div>
+        <div>
+          <div class="label">経度 lon</div>
+          <input id="mLon" class="input" placeholder="140.123456">
+        </div>
+      </div>
+      <div class="tiny" style="margin-top:6px;">※ lat/lon が入っていればこれを優先して追加</div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2 style="margin-bottom:8px;">RTK（JGD2011 平面直角：m）</h2>
+
+      <div class="formRow">
+        <div>
+          <div class="label">Zone（系）</div>
+          <select id="mZone" class="input">
+            <option value="">選択</option>
+            <option value="1">1系</option><option value="2">2系</option><option value="3">3系</option>
+            <option value="4">4系</option><option value="5">5系</option><option value="6">6系</option>
+            <option value="7">7系</option><option value="8">8系</option><option value="9">9系</option>
+            <option value="10">10系</option><option value="11">11系</option><option value="12">12系</option>
+            <option value="13">13系</option><option value="14">14系</option><option value="15">15系</option>
+            <option value="16">16系</option><option value="17">17系</option><option value="18">18系</option>
+            <option value="19">19系</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <div style="flex:1;">
+          <div class="label">X (Easting) [m]</div>
+          <input id="mJgd2011X" class="input" placeholder="例：123456.789">
+        </div>
+        <div style="flex:1;">
+          <div class="label">Y (Northing) [m]</div>
+          <input id="mJgd2011Y" class="input" placeholder="例：123456.789">
+        </div>
+      </div>
+
+      <div class="tiny" style="margin-top:6px;">
+        ※ lat/lon が空で、Zone + X + Y が揃っていればRTKとして送信
+      </div>
+    </div>
+
+    <div class="modalActions">
+      <button class="btn" onclick="closeAddModal()">キャンセル</button>
+      <button class="btn primary" onclick="submitAddByCoord()">追加</button>
+    </div>
+  </div>
+</div>
+
+<div class="modalBg" id="schModalBg" onclick="closeSchModalIfBg(event)">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3>灌水スケジュール追加</h3>
+      <button class="xbtn" onclick="closeSchModal()">✕</button>
+    </div>
+
+    <div class="formGrid">
+      <div>
+        <div class="label">日付（JST）</div>
+        <input id="sDate" class="input" type="date">
+      </div>
+      <div>
+        <div class="label">開始時刻</div>
+        <input id="sTime" class="input" type="time" value="06:00">
+      </div>
+      <div>
+        <div class="label">分数</div>
+        <input id="sMins" class="input" type="number" min="1" max="180" value="3">
+      </div>
+    </div>
+
+    <div class="tiny" id="sPreview" style="margin-top:10px;">--</div>
+
+    <div class="modalActions">
+      <button class="btn" onclick="closeSchModal()">キャンセル</button>
+      <button class="btn primary" onclick="submitSchedule()">追加</button>
+    </div>
+  </div>
+</div>
+
+<div class="modalBg" id="moveModalBg" onclick="closeMoveModalIfBg(event)">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3>ピン位置を移動</h3>
+      <button class="xbtn" onclick="closeMoveModal()">✕</button>
+    </div>
+
+    <div class="tiny" style="margin-bottom:10px;">
+      現在のデータやログは残したまま、地図上の位置だけ更新します。
+    </div>
+
+    <div class="card" style="margin-top:0;">
+      <h2 style="margin-bottom:8px;">緯度経度（WGS84）</h2>
+      <div class="formRow">
+        <div>
+          <div class="label">緯度 lat</div>
+          <input id="mvLat" class="input" placeholder="36.123456">
+        </div>
+        <div>
+          <div class="label">経度 lon</div>
+          <input id="mvLon" class="input" placeholder="140.123456">
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2 style="margin-bottom:8px;">RTK（JGD2011 平面直角：m）</h2>
+      <div class="formRow">
+        <div>
+          <div class="label">Zone（系）</div>
+          <select id="mvZone" class="input">
+            <option value="">選択</option>
+            <option value="1">1系</option><option value="2">2系</option><option value="3">3系</option>
+            <option value="4">4系</option><option value="5">5系</option><option value="6">6系</option>
+            <option value="7">7系</option><option value="8">8系</option><option value="9">9系</option>
+            <option value="10">10系</option><option value="11">11系</option><option value="12">12系</option>
+            <option value="13">13系</option><option value="14">14系</option><option value="15">15系</option>
+            <option value="16">16系</option><option value="17">17系</option><option value="18">18系</option>
+            <option value="19">19系</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <div style="flex:1;">
+          <div class="label">X (Easting) [m]</div>
+          <input id="mvJgd2011X" class="input" placeholder="例：123456.789">
+        </div>
+        <div style="flex:1;">
+          <div class="label">Y (Northing) [m]</div>
+          <input id="mvJgd2011Y" class="input" placeholder="例：123456.789">
+        </div>
+      </div>
+    </div>
+
+    <div class="modalActions">
+      <button class="btn" onclick="closeMoveModal()">キャンセル</button>
+      <button class="btn primary" onclick="submitMovePin()">この位置に移動</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const map = L.map("map").setView([36,140], 6);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap contributors|©2026 FIEagle SYSTEMS All Rights Reserved."
+}).addTo(map);
+
+const markers = {};
+const clickCount = {};
+const CLICK_RESET_MS = 1200;
+
+let PINS = {};
+let currentId = null;
+let currentDebug = null;
+
+const $ = (id)=>document.getElementById(id);
+
+async function refreshPins(){
+  const r = await fetch("/api/pins", {cache:"no-store"});
+  PINS = await r.json();
+  renderAllMarkers();
+}
+
+function renderAllMarkers(){
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  for(const k in markers) delete markers[k];
+
+  for(const [id, dev] of Object.entries(PINS)){
+    addMarker(id, dev.lat, dev.lon);
+  }
+}
+
+function addMarker(id, lat, lon){
+  const dev = PINS[id];
+  const m = L.marker([lat, lon]).addTo(map);
+  const tip = `${dev.name}（#${id} / ${dev.template}）`;
+  m.bindTooltip(tip, {direction:"top", offset:[0,-8], opacity:0.95});
+
+  m.on("click", ()=>{
+    clickCount[id] = (clickCount[id] || 0) + 1;
+    setTimeout(()=>{ clickCount[id] = 0; }, CLICK_RESET_MS);
+
+    if(clickCount[id] >= 3){
+      deleteDevice(id);
+      clickCount[id] = 0;
+      return;
+    }
+    openPanel(id);
+  });
+
+  m.on("contextmenu", ()=> deleteDevice(id));
+  markers[id] = m;
+}
+
+map.on("click", async (e)=>{
+  const lat = +e.latlng.lat.toFixed(6);
+  const lon = +e.latlng.lng.toFixed(6);
+
+  const name = prompt("表示名（例：笠間_みかん畑A）");
+  if(!name) return;
+
+  const tpl = (prompt("機械種別（テンプレ） A/B/C を入力\nA=灌水 / B=通信 / C=タンク") || "A").trim().toUpperCase();
+  if(!["A","B","C"].includes(tpl)) return alert("A/B/C のどれかにして！");
+
+  const resp = await fetch("/api/pins", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({name, template: tpl, lat, lon})
+  });
+
+  if(!resp.ok){
+    const t = await resp.text().catch(()=> "");
+    return alert("追加に失敗\n" + t);
+  }
+
+  const js = await resp.json();
+  const id = js.pin_id;
+
+  await refreshPins();
+  map.setView([lat, lon], 16);
+
+  if(tpl === "C"){
+    alert(`追加しました。機械側に書き込むIDは #${id} です`);
+    window.location.href = `/tanku?pin_id=${encodeURIComponent(id)}`;
+    return;
+  }
+
+  openPanel(id);
+  alert(`追加しました。機械側に書き込むIDは #${id} です`);
+});
+
+function closePanel(){
+  $("panel").style.display = "none";
+  currentId = null;
+  currentDebug = null;
+}
+
+async function openPanel(id){
+  currentId = id;
+  const dev = PINS[id];
+  if(!dev) return;
+
+  if((dev.template || "").toUpperCase() === "C"){
+    window.location.href = `/tanku?pin_id=${encodeURIComponent(id)}`;
+    return;
+  }
+
+  $("panelName").textContent = dev.name;
+  $("panelId").textContent = `ID: #${id}`;
+  $("panelTpl").textContent = `TPL: ${dev.template}`;
+  $("panelPos").textContent = `${Number(dev.lat).toFixed(6)}, ${Number(dev.lon).toFixed(6)}`;
+
+  $("setName").value = dev.name || "";
+  $("setTpl").value  = dev.template || "A";
+  $("setNote").value = dev.note || "";
+
+  $("panel").style.display = "flex";
+
+  await initOrRefreshCalendar();
+  await initChartsIfNeeded();
+  await refreshPanelAll();
+}
+
+async function saveSettings(){
+  if(!currentId) return;
+
+  const name = $("setName").value.trim();
+  const tpl  = $("setTpl").value;
+  const note = $("setNote").value.trim();
+
+  if(!name) return alert("表示名を入れて");
+
+  const payload = { name, template: tpl, note };
+
+  const r = await fetch(`/api/pins/${encodeURIComponent(currentId)}`, {
+    method:"PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  if(!r.ok){
+    const t = await r.text().catch(()=> "");
+    return alert("保存失敗\n" + t);
+  }
+
+  const res = await r.json().catch(()=> ({}));
+  const newMode = String(res.mode || tpl || "").toUpperCase();
+
+  await refreshPins();
+  const dev = PINS[currentId];
+
+  if(dev){
+    if(newMode === "C"){
+      window.location.href = `/tanku?pin_id=${encodeURIComponent(currentId)}`;
+      return;
+    }
+    $("panelName").textContent = dev.name;
+    $("panelTpl").textContent = `TPL: ${dev.template}`;
+    $("panelPos").textContent = `${Number(dev.lat).toFixed(6)}, ${Number(dev.lon).toFixed(6)}`;
+  }
+
+  alert("保存しました");
+}
+
+async function deleteCurrent(){
+  if(currentId == null) return;
+  await deleteDevice(currentId);
+}
+
+async function deleteDevice(id){
+  const dev = PINS[id];
+  if(!dev) return;
+
+  const ok = confirm(`削除しますか？\n${dev.name}（#${id}）\n\n※ログ/予定も消える前提`);
+  if(!ok) return;
+
+  const r = await fetch(`/api/pins/${encodeURIComponent(id)}`, { method:"DELETE" });
+  if(!r.ok){
+    const t = await r.text().catch(()=> "");
+    return alert("削除失敗\n" + t);
+  }
+
+  closePanel();
+  await refreshPins();
+}
+
+function setAgeText(ts){
+  if(!ts){
+    $("panelAge").textContent = "更新: --";
+    return;
+  }
+  const now = Math.floor(Date.now()/1000);
+  const age = Math.max(0, now - ts);
+  $("panelAge").textContent = `更新: ${age}s前`;
+}
+
+function numOrDash(v){
+  if(v === null || v === undefined || v === "") return "-";
+  const n = Number(v);
+  return Number.isFinite(n) ? n : v;
+}
+
+function renderKpis(latest){
+  const grid = $("kpiGrid");
+  grid.innerHTML = "";
+
+  const data = (latest && latest.data) ? latest.data : {};
+  const ts = latest && latest.ts ? Number(latest.ts) : null;
+  setAgeText(ts);
+
+  const items = [
+    {key:"soil", label:"土壌水分", unit:"", hint:"例: % or raw値"},
+    {key:"rssi_up", label:"RSSI↑(子→親)", unit:"dBm", hint:"通信強度"},
+    {key:"rssi_down", label:"RSSI↓(親→子)", unit:"dBm", hint:"通信強度"},
+    {key:"noise", label:"Noise", unit:"dBm", hint:"環境ノイズ"},
+  ];
+
+  items.forEach(k=>{
+    const v = numOrDash(data[k.key]);
+    grid.insertAdjacentHTML("beforeend", `
+      <div class="kpi">
+        <div class="label">${k.label}</div>
+        <div class="value">${v}<span style="font-size:.95rem; color:var(--muted); margin-left:6px;">${k.unit}</span></div>
+        <div class="sub">${k.hint}</div>
+      </div>
+    `);
+  });
+}
+
+async function fetchLatest(){
+  const r = await fetch(`/api/latest/${encodeURIComponent(currentId)}`, {cache:"no-store"});
+  if(!r.ok) return {};
+  return await r.json();
+}
+
+async function fetchCommand(){
+  const r = await fetch(`/api/command/${encodeURIComponent(currentId)}`, {cache:"no-store"});
+  if(!r.ok) return {};
+  return await r.json();
+}
+
+async function fetchDebug(){
+  const r = await fetch(`/api/debug/pin/${encodeURIComponent(currentId)}`, {cache:"no-store"});
+  if(!r.ok) return {};
+  return await r.json();
+}
+
+async function postCommand(payload){
+  const r = await fetch(`/api/command/${encodeURIComponent(currentId)}`, {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  if(!r.ok) throw new Error("command failed");
+  return await r.json();
+}
+
+async function setValve(valve){
+  try{
+    await postCommand({ type:"manual", valve: Number(valve) });
+    await refreshCommandBox();
+    await refreshValveStatus();
+  }catch(e){
+    alert("送信失敗");
+  }
+}
+
+async function setTimer(){
+  const mins = Number($("durationMin").value || 1);
+  const m = Math.max(1, Math.min(180, mins));
+  const sec = m * 60;
+  try{
+    await postCommand({ type:"manual", duration_sec: sec });
+    await refreshCommandBox();
+    await refreshValveStatus();
+  }catch(e){
+    alert("送信失敗");
+  }
+}
+
+async function setThreshold(){
+  const th = $("threshold").value;
+  if(th === "") return alert("閾値を入れて");
+  try{
+    await postCommand({ type:"threshold", threshold: Number(th) });
+    await refreshCommandBox();
+  }catch(e){
+    alert("送信失敗");
+  }
+}
+
+function fmtAck(ack){
+  if(!ack) return null;
+  const ts = Number(ack.ts || 0);
+  const when = ts ? new Date(ts*1000).toLocaleString("ja-JP") : "-";
+  return { ...ack, when };
+}
+
+async function refreshCommandBox(){
+  const cmd = await fetchCommand();
+  if(cmd && cmd.ack){
+    cmd.ack_pretty = fmtAck(cmd.ack);
+  }
+  $("cmdJson").textContent = JSON.stringify(cmd, null, 2);
+}
+
+function fmtTs(ts){
+  const n = Number(ts || 0);
+  if(!n) return "--";
+  return new Date(n * 1000).toLocaleString("ja-JP");
+}
+
+function setValveStateUi(text, cls, source, updated){
+  const elState = $("valveStateText");
+  const elSource = $("valveStateSource");
+  const elUpdated = $("valveStateUpdated");
+
+  elState.textContent = text || "--";
+  elState.className = `svalue ${cls || ""}`.trim();
+  elSource.textContent = source || "--";
+  elUpdated.textContent = updated || "--";
+}
+
+function inferValveState(debugObj){
+  const dbg = debugObj || {};
+  const cmd = dbg.command || {};
+  const ack = dbg.ack || {};
+  const latest = dbg.latest || {};
+  const sch = dbg.schedule || {};
+  const items = Array.isArray(sch.items) ? sch.items : [];
+
+  const cmdId = Number(cmd.cmd_id || 0);
+  const ackId = Number(ack.cmd_id || 0);
+  const pending = cmdId !== 0 && cmdId !== ackId;
+
+  const anyOpened = items.some(it => String(it.status || "") === "opened");
+
+  if(pending){
+    if(Number(cmd.valve) === 1){
+      return {
+        text: "開要求送信中",
+        cls: "state-warn",
+        source: "未ACKのため送信待ち",
+        updated: fmtTs(ack.ts || latest.ts)
+      };
+    }
+    return {
+      text: "閉要求送信中",
+      cls: "state-warn",
+      source: "未ACKのため送信待ち",
+      updated: fmtTs(ack.ts || latest.ts)
+    };
+  }
+
+  if(anyOpened){
+    return {
+      text: "開（スケジュール中）",
+      cls: "state-open",
+      source: "スケジュール状態",
+      updated: fmtTs(latest.ts || ack.ts)
+    };
+  }
+
+  if(String(cmd.type || "") === "schedule_open" && Number(cmd.valve) === 1){
+    return {
+      text: "開",
+      cls: "state-open",
+      source: "直近 command / ACK から推定",
+      updated: fmtTs(ack.ts || latest.ts)
+    };
+  }
+
+  if(String(cmd.type || "") === "schedule_close" && Number(cmd.valve) === 0){
+    return {
+      text: "閉",
+      cls: "state-close",
+      source: "直近 command / ACK から推定",
+      updated: fmtTs(ack.ts || latest.ts)
+    };
+  }
+
+  if(String(cmd.type || "") === "manual" && Number(cmd.valve) === 1){
+    return {
+      text: "開",
+      cls: "state-open",
+      source: "手動 command / ACK から推定",
+      updated: fmtTs(ack.ts || latest.ts)
+    };
+  }
+
+  if(String(cmd.type || "") === "manual" && Number(cmd.valve) === 0){
+    return {
+      text: "閉",
+      cls: "state-close",
+      source: "手動 command / ACK から推定",
+      updated: fmtTs(ack.ts || latest.ts)
+    };
+  }
+
+  return {
+    text: "不明",
+    cls: "state-warn",
+    source: "判定材料不足",
+    updated: fmtTs(latest.ts || ack.ts)
+  };
+}
+
+async function refreshValveStatus(){
+  if(!currentId) return;
+  const dbg = await fetchDebug();
+  currentDebug = dbg;
+  const state = inferValveState(dbg);
+  setValveStateUi(state.text, state.cls, state.source, state.updated);
+  $("debugJson").textContent = JSON.stringify(dbg, null, 2);
+}
+
+let calendar = null;
+
+function toLocalISO(d){
+  const pad = (n)=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function addMinutesLocal(startLocalStr, mins){
+  const d = new Date(startLocalStr);
+  d.setMinutes(d.getMinutes() + mins);
+  return toLocalISO(d);
+}
+
+function scheduleToEvents(items){
+  return (items || []).map(it => {
+    const startStr = String(it.start_local || "");
+    const mins = Number(it.minutes || 1);
+
+    const status = it.status || "scheduled";
+    const prefix = status === "scheduled" ? "💧" : (status === "opened" ? "🟢" : "✅");
+    const title = `${prefix} 灌水 ${mins}分`;
+
+    return {
+      id: it.id,
+      title,
+      start: startStr,
+      end: addMinutesLocal(startStr, mins),
+      allDay:false,
+      extendedProps:{ minutes:mins, status }
+    };
+  });
+}
+
+async function fetchSchedule(){
+  const r = await fetch(`/api/schedule/${encodeURIComponent(currentId)}`, {cache:"no-store"});
+  if(!r.ok) throw new Error("schedule failed");
+  return await r.json();
+}
+
+async function postSchedule(start_local, minutes){
+  const r = await fetch(`/api/schedule/${encodeURIComponent(currentId)}`, {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ start_local, minutes })
+  });
+  if(!r.ok) throw new Error("schedule post failed");
+  return await r.json();
+}
+
+async function deleteSchedule(sid){
+  const r = await fetch(`/api/schedule/${encodeURIComponent(currentId)}/${encodeURIComponent(sid)}`, { method:"DELETE" });
+  if(!r.ok) throw new Error("schedule delete failed");
+  return await r.json();
+}
+
+async function refreshCalendarEvents(){
+  if(!calendar || !currentId) return;
+  const sch = await fetchSchedule();
+  const events = scheduleToEvents(sch.items || []);
+  calendar.removeAllEvents();
+  events.forEach(ev => calendar.addEvent(ev));
+}
+
+async function initOrRefreshCalendar(){
+  if(!currentId) return;
+  const el = $("calendar");
+  if(!el) return;
+
+  if(!calendar){
+    calendar = new FullCalendar.Calendar(el, {
+      initialView: "dayGridMonth",
+      locale: "ja",
+      timeZone: "Asia/Tokyo",
+      height: "auto",
+      headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek" },
+      dateClick: (info)=> openSchModal(info.dateStr),
+      eventClick: async (info)=>{
+        const sid = info.event.id;
+        const mins = info.event.extendedProps.minutes;
+        const when = info.event.start
+          ? info.event.start.toLocaleString("ja-JP", {year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})
+          : "";
+        const ok = confirm(`この予定を削除しますか？\n${when} / ${mins}分`);
+        if(!ok) return;
+        try{
+          await deleteSchedule(sid);
+          await refreshCalendarEvents();
+          await refreshValveStatus();
+        }catch(e){
+          alert("削除失敗");
+        }
+      }
+    });
+    calendar.render();
+  }
+
+  await refreshCalendarEvents();
+}
+
+function openSchModal(dateStr){
+  $("sDate").value = dateStr;
+  $("sTime").value = "06:00";
+  $("sMins").value = "3";
+  updateSchPreview();
+  $("schModalBg").style.display = "grid";
+}
+function closeSchModal(){ $("schModalBg").style.display = "none"; }
+function closeSchModalIfBg(ev){ if(ev.target && ev.target.id === "schModalBg") closeSchModal(); }
+function updateSchPreview(){
+  const d = $("sDate").value;
+  const t = $("sTime").value;
+  const m = Number($("sMins").value || 1);
+  $("sPreview").textContent = (!d || !t) ? "--" : `追加予定：${d} ${t} から ${m}分`;
+}
+["sDate","sTime","sMins"].forEach(id=>{
+  document.addEventListener("input", (e)=>{ if(e.target && e.target.id === id) updateSchPreview(); });
+});
+
+async function submitSchedule(){
+  const d = $("sDate").value;
+  const t = $("sTime").value;
+  const mins = Number($("sMins").value || 1);
+  if(!d || !t) return alert("日付と時刻を入れて");
+
+  const start_local = `${d}T${t}:00`;
+
+  try{
+    await postSchedule(start_local, Math.max(1, Math.min(180, mins)));
+    closeSchModal();
+    await refreshCalendarEvents();
+    await refreshValveStatus();
+  }catch(e){
+    alert("追加失敗");
+  }
+}
+
+let soilChart = null;
+let rfChart = null;
+
+function fmtTime(ts){
+  const d = new Date(ts*1000);
+  return d.toLocaleString("ja-JP", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+}
+
+async function fetchLogs(limit=800){
+  const r = await fetch(`/api/logs/${encodeURIComponent(currentId)}?limit=${encodeURIComponent(limit)}`, {cache:"no-store"});
+  if(!r.ok) return {items:[]};
+  return await r.json();
+}
+
+async function initChartsIfNeeded(){
+  if(soilChart && rfChart) return;
+
+  const soilCtx = $("soilChart").getContext("2d");
+  soilChart = new Chart(soilCtx, {
+    type: "line",
+    data: { labels: [], datasets: [{ label:"Soil", data: [], spanGaps:true }] },
+    options: { responsive:true, maintainAspectRatio:false, animation:false }
+  });
+
+  const rfCtx = $("rfChart").getContext("2d");
+  rfChart = new Chart(rfCtx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        { label:"RSSI↑", data: [], spanGaps:true },
+        { label:"RSSI↓", data: [], spanGaps:true },
+        { label:"Noise", data: [], spanGaps:true },
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, animation:false }
+  });
+}
+
+async function refreshCharts(){
+  if(!currentId || !soilChart || !rfChart) return;
+  const js = await fetchLogs(800);
+  const items = js.items || [];
+
+  const labels = items.map(x => fmtTime(x.ts));
+  const soil = items.map(x => x.soil);
+  const up   = items.map(x => x.rssi_up);
+  const down = items.map(x => x.rssi_down);
+  const noise= items.map(x => x.noise);
+
+  soilChart.data.labels = labels;
+  soilChart.data.datasets[0].data = soil;
+  soilChart.update();
+
+  rfChart.data.labels = labels;
+  rfChart.data.datasets[0].data = up;
+  rfChart.data.datasets[1].data = down;
+  rfChart.data.datasets[2].data = noise;
+  rfChart.update();
+}
+
+function searchDevice(){
+  const kw = $("search").value.trim().toLowerCase();
+  if(!kw) return alert("検索キーワードを入力して");
+
+  if(/^\d+$/.test(kw) && PINS[kw]){
+    const d = PINS[kw];
+    map.setView([d.lat, d.lon], 16);
+    openPanel(kw);
+    return;
+  }
+
+  for(const [id, d] of Object.entries(PINS)){
+    if((d.name || "").toLowerCase().includes(kw)){
+      map.setView([d.lat, d.lon], 16);
+      openPanel(id);
+      return;
+    }
+  }
+
+  alert("見つかりません");
+}
+
+function openAddByCoord(){
+  $("addModalBg").style.display = "grid";
+  $("mName").value = "";
+  $("mTpl").value = "A";
+  $("mNote").value = "";
+  $("mLat").value = "";
+  $("mLon").value = "";
+  $("mZone").value = "";
+  $("mJgd2011X").value = "";
+  $("mJgd2011Y").value = "";
+}
+function closeAddModal(){ $("addModalBg").style.display = "none"; }
+function closeAddModalIfBg(ev){ if(ev.target && ev.target.id === "addModalBg") closeAddModal(); }
+
+function openMoveModal(){
+  if(!currentId || !PINS[currentId]) return;
+  const p = PINS[currentId];
+  $("mvLat").value = p.lat ?? "";
+  $("mvLon").value = p.lon ?? "";
+  $("mvZone").value = "";
+  $("mvJgd2011X").value = "";
+  $("mvJgd2011Y").value = "";
+  $("moveModalBg").style.display = "grid";
+}
+function closeMoveModal(){ $("moveModalBg").style.display = "none"; }
+function closeMoveModalIfBg(ev){ if(ev.target && ev.target.id === "moveModalBg") closeMoveModal(); }
+
+function isFiniteNumberString(s){
+  if(s === null || s === undefined) return false;
+  const t = String(s).trim();
+  if(t === "") return false;
+  const n = Number(t);
+  return Number.isFinite(n);
+}
+
+async function submitAddByCoord(){
+  const name = $("mName").value.trim();
+  const tpl  = $("mTpl").value;
+  const note = $("mNote").value.trim();
+
+  if(!name) return alert("表示名を入れて");
+  if(!["A","B","C"].includes(String(tpl).toUpperCase())) return alert("テンプレは A/B/C");
+
+  const latStr = $("mLat").value.trim();
+  const lonStr = $("mLon").value.trim();
+  const zoneStr = $("mZone").value.trim();
+  const xStr = $("mJgd2011X").value.trim();
+  const yStr = $("mJgd2011Y").value.trim();
+
+  let payload = { name, template: tpl, note };
+  const hasLatLon = isFiniteNumberString(latStr) && isFiniteNumberString(lonStr);
+
+  if(hasLatLon){
+    payload.lat = +Number(latStr).toFixed(6);
+    payload.lon = +Number(lonStr).toFixed(6);
+  } else {
+    const hasRTK = zoneStr !== "" && isFiniteNumberString(xStr) && isFiniteNumberString(yStr);
+    if(!hasRTK){
+      return alert("座標が足りないです。\nlat/lon か、RTK (zone + X + Y) を入れてください。");
+    }
+    payload.zone = zoneStr;
+    payload.jgd2011_x = Number(xStr);
+    payload.jgd2011_y = Number(yStr);
+  }
+
+  const resp = await fetch("/api/pins", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  if(!resp.ok){
+    const t = await resp.text().catch(()=> "");
+    return alert("追加失敗\n" + t);
+  }
+
+  const js = await resp.json();
+  const id = js.pin_id;
+
+  closeAddModal();
+  await refreshPins();
+
+  const lat = Number(js.lat ?? (PINS[id] ? PINS[id].lat : null));
+  const lon = Number(js.lon ?? (PINS[id] ? PINS[id].lon : null));
+  if(Number.isFinite(lat) && Number.isFinite(lon)){
+    map.setView([lat, lon], 16);
+  }
+
+  if((tpl || "").toUpperCase() === "C"){
+    alert(`追加しました。機械側に書き込むIDは #${id} です`);
+    window.location.href = `/tanku?pin_id=${encodeURIComponent(id)}`;
+    return;
+  }
+
+  openPanel(id);
+  alert(`追加しました。機械側に書き込むIDは #${id} です`);
+}
+
+async function submitMovePin(){
+  if(!currentId) return;
+
+  const latStr = $("mvLat").value.trim();
+  const lonStr = $("mvLon").value.trim();
+  const zoneStr = $("mvZone").value.trim();
+  const xStr = $("mvJgd2011X").value.trim();
+  const yStr = $("mvJgd2011Y").value.trim();
+
+  let payload = {};
+  const hasLatLon = isFiniteNumberString(latStr) && isFiniteNumberString(lonStr);
+
+  if(hasLatLon){
+    payload.lat = +Number(latStr).toFixed(6);
+    payload.lon = +Number(lonStr).toFixed(6);
+  } else {
+    const hasRTK = zoneStr !== "" && isFiniteNumberString(xStr) && isFiniteNumberString(yStr);
+    if(!hasRTK){
+      return alert("移動先の座標を入れてください。\nlat/lon か、RTK (zone + X + Y) が必要です。");
+    }
+    payload.zone = zoneStr;
+    payload.jgd2011_x = Number(xStr);
+    payload.jgd2011_y = Number(yStr);
+  }
+
+  const r = await fetch(`/api/pins/${encodeURIComponent(currentId)}/move`, {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  if(!r.ok){
+    const t = await r.text().catch(()=> "");
+    return alert("ピン移動失敗\n" + t);
+  }
+
+  const js = await r.json();
+  const dev = PINS[currentId];
+  if(dev){
+    dev.lat = Number(js.lat);
+    dev.lon = Number(js.lon);
+  }
+
+  await refreshPins();
+
+  if(Number.isFinite(Number(js.lat)) && Number.isFinite(Number(js.lon))){
+    map.setView([Number(js.lat), Number(js.lon)], 16);
+    $("panelPos").textContent = `${Number(js.lat).toFixed(6)}, ${Number(js.lon).toFixed(6)}`;
+  }
+
+  closeMoveModal();
+  alert("ピン位置を更新しました");
+}
+
+function csvEscape(v){
+  if(v === null || v === undefined) return "";
+  const s = String(v);
+  if(/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+async function exportCsv(){
+  if(!currentId) return;
+
+  try{
+    const dev = PINS[currentId] || {};
+    const logsRes = await fetchLogs(2000);
+    const logs = logsRes.items || [];
+    const cmd = await fetchCommand();
+    const dbg = currentDebug || await fetchDebug();
+
+    const rows = [];
+    rows.push([
+      "pin_id","name","template","lat","lon","note",
+      "log_ts","log_local","soil","rssi_up","rssi_down","noise",
+      "current_cmd_id","current_type","current_valve","current_duration_sec",
+      "ack_cmd_id","ack_ok","ack_detail"
+    ].join(","));
+
+    if(logs.length === 0){
+      rows.push([
+        csvEscape(currentId),
+        csvEscape(dev.name || ""),
+        csvEscape(dev.template || ""),
+        csvEscape(dev.lat ?? ""),
+        csvEscape(dev.lon ?? ""),
+        csvEscape(dev.note || ""),
+        "", "", "", "", "", "",
+        csvEscape(cmd.cmd_id ?? ""),
+        csvEscape(cmd.type ?? ""),
+        csvEscape(cmd.valve ?? ""),
+        csvEscape(cmd.duration_sec ?? ""),
+        csvEscape(cmd.ack?.cmd_id ?? ""),
+        csvEscape(cmd.ack?.ok ?? ""),
+        csvEscape(cmd.ack?.detail ?? "")
+      ].join(","));
+    } else {
+      for(const it of logs){
+        rows.push([
+          csvEscape(currentId),
+          csvEscape(dev.name || ""),
+          csvEscape(dev.template || ""),
+          csvEscape(dev.lat ?? ""),
+          csvEscape(dev.lon ?? ""),
+          csvEscape(dev.note || ""),
+          csvEscape(it.ts ?? ""),
+          csvEscape(it.ts ? new Date(Number(it.ts) * 1000).toLocaleString("ja-JP") : ""),
+          csvEscape(it.soil ?? ""),
+          csvEscape(it.rssi_up ?? ""),
+          csvEscape(it.rssi_down ?? ""),
+          csvEscape(it.noise ?? ""),
+          csvEscape(cmd.cmd_id ?? ""),
+          csvEscape(cmd.type ?? ""),
+          csvEscape(cmd.valve ?? ""),
+          csvEscape(cmd.duration_sec ?? ""),
+          csvEscape(cmd.ack?.cmd_id ?? ""),
+          csvEscape(cmd.ack?.ok ?? ""),
+          csvEscape(cmd.ack?.detail ?? "")
+        ].join(","));
+      }
+    }
+
+    rows.push("");
+    rows.push("### schedule");
+    rows.push("schedule_id,start_local,minutes,status");
+
+    const schItems = (dbg && dbg.schedule && Array.isArray(dbg.schedule.items)) ? dbg.schedule.items : [];
+    for(const s of schItems){
+      rows.push([
+        csvEscape(s.id ?? ""),
+        csvEscape(s.start_local ?? ""),
+        csvEscape(s.minutes ?? ""),
+        csvEscape(s.status ?? "")
+      ].join(","));
+    }
+
+    const csv = "\uFEFF" + rows.join("\n");
+    const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    a.href = url;
+    a.download = `pin_${currentId}_${y}${m}${d}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert("CSV出力に失敗しました");
+  }
+}
+
+async function refreshPanelAll(){
+  if(!currentId) return;
+  const latest = await fetchLatest();
+  renderKpis(latest);
+  await refreshCommandBox();
+  await refreshValveStatus();
+  await refreshCharts();
+  await refreshCalendarEvents();
+}
+
+setInterval(async ()=>{
+  if(currentId) await refreshPanelAll();
+}, 5000);
+
+refreshPins();
+</script>
+
+</body>
+</html>

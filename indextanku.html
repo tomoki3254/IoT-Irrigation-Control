@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>タンク（C）ダッシュボード</title>
+
+<!-- FullCalendar -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+<style>
+  :root{
+    --bg:#eef4f8;
+    --bg-soft:#f6f9fc;
+    --card:#ffffff;
+    --text:#1f2d3d;
+    --muted:#6b7a8c;
+    --line:#d7e2ec;
+    --primary:#4da3ff;
+    --primary-soft:#e8f3ff;
+    --primary-line:#b9d8ff;
+    --danger:#e35d6a;
+    --danger-soft:#fff1f3;
+    --danger-line:#f3bcc4;
+    --ok:#2e9f6b;
+    --ok-soft:#ecfaf3;
+    --ok-line:#bfe7d1;
+    --warn:#c98a00;
+    --warn-soft:#fff8e8;
+    --warn-line:#f0d89a;
+    --shadow:0 16px 40px rgba(30,60,90,.10);
+    --radius:18px;
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    font-family: system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;
+    background:
+      radial-gradient(700px 380px at 12% -10%, rgba(77,163,255,.10), transparent 55%),
+      radial-gradient(700px 380px at 100% 0%, rgba(77,163,255,.08), transparent 50%),
+      var(--bg);
+    color:var(--text);
+    padding:18px;
+  }
+
+  .wrap{
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .panel-header{
+    background: var(--card);
+    border:1px solid var(--line);
+    padding:12px;
+    border-radius:16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+  }
+
+  .panel-title{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:0;
+  }
+
+  .panel-title .name{
+    font-weight:900;
+    font-size:1.05rem;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:var(--text);
+  }
+
+  .panel-title .meta{
+    font-size:.85rem;
+    color:var(--muted);
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  .pill{
+    border:1px solid var(--line);
+    background:var(--bg-soft);
+    border-radius:999px;
+    padding:3px 10px;
+    font-size:.8rem;
+    color:var(--muted);
+  }
+
+  .mono{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .card{
+    background: var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px;
+    margin-bottom:12px;
+    box-shadow: var(--shadow);
+  }
+
+  .card h2{
+    margin:0 0 10px 0;
+    font-size:13px;
+    letter-spacing:.4px;
+    color: var(--primary);
+    font-weight:800;
+  }
+
+  .row-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .btn{
+    border:1px solid var(--line);
+    background:#fff;
+    color: var(--text);
+    border-radius:12px;
+    padding:9px 10px;
+    cursor:pointer;
+    font-weight:800;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:.15s ease;
+  }
+
+  .btn:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(77,163,255,.10);
+  }
+
+  .btn:active{
+    transform: translateY(1px);
+  }
+
+  .btn.primary{
+    background: var(--primary-soft);
+    border-color: var(--primary-line);
+    color:#236fbe;
+  }
+
+  .btn.danger{
+    background: var(--danger-soft);
+    border-color: var(--danger-line);
+    color:#c14556;
+  }
+
+  .btn.warn{
+    background: var(--warn-soft);
+    border-color: var(--warn-line);
+    color:#9a6a00;
+  }
+
+  .formRow{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  @media (max-width: 760px){
+    .formRow{ grid-template-columns: 1fr; }
+  }
+
+  .label{
+    font-size:.85rem;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+
+  .input{
+    width:100%;
+    background:#fff;
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 10px;
+    font-weight: 700;
+    outline:none;
+  }
+
+  .input:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 4px rgba(77,163,255,.12);
+  }
+
+  .tiny{
+    font-size:12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 360px 1fr;
+    gap: 14px;
+    align-items:start;
+  }
+
+  @media (max-width: 980px){
+    .grid{grid-template-columns:1fr;}
+  }
+
+  .tankHead{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:8px;
+  }
+
+  .tankHead .title{
+    font-weight:900;
+    letter-spacing:.6px;
+    font-size:13px;
+    color:var(--text);
+  }
+
+  .tankHead .pct{
+    font-weight:900;
+    font-size:16px;
+    color:var(--text);
+  }
+
+  .tankMeta{
+    margin-top: 10px;
+    display:flex;
+    justify-content:space-between;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .badge{
+    padding:6px 10px;
+    border-radius:999px;
+    border: 1px solid var(--line);
+    background: var(--bg-soft);
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .badge.ok{
+    color:var(--ok);
+    border-color:var(--ok-line);
+    background:var(--ok-soft);
+  }
+
+  .badge.warn{
+    color:var(--warn);
+    border-color:var(--warn-line);
+    background:var(--warn-soft);
+  }
+
+  .badge.bad{
+    color:var(--danger);
+    border-color:var(--danger-line);
+    background:var(--danger-soft);
+  }
+
+  /* FullCalendar */
+  .fc{
+    --fc-page-bg-color: transparent;
+    --fc-border-color: var(--line);
+    --fc-today-bg-color: rgba(77,163,255,.12);
+    --fc-neutral-bg-color: #f8fbfe;
+    --fc-list-event-hover-bg-color: #eef6ff;
+    --fc-event-border-color: var(--primary-line);
+    --fc-event-bg-color: var(--primary-soft);
+    --fc-event-text-color: var(--text);
+    color: var(--text);
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:10px;
+  }
+
+  .fc-scrollgrid,
+  .fc-theme-standard td,
+  .fc-theme-standard th{
+    border-color:var(--line) !important;
+  }
+
+  .fc-col-header-cell{
+    background:#f6f9fc;
+  }
+
+  .fc .fc-col-header-cell-cushion{
+    color:#4b5b6b !important;
+    font-weight:800;
+    text-decoration:none;
+    padding:8px 4px;
+  }
+
+  .fc .fc-daygrid-day-number,
+  .fc .fc-timegrid-axis-cushion,
+  .fc .fc-timegrid-slot-label-cushion{
+    color:var(--text) !important;
+    text-decoration:none;
+    font-weight:700;
+  }
+
+  .fc .fc-daygrid-day.fc-day-today{
+    background:rgba(77,163,255,.12) !important;
+  }
+
+  .fc .fc-toolbar{
+    margin-bottom:10px !important;
+  }
+
+  .fc .fc-toolbar-title{
+    font-size: 14px;
+    font-weight:900;
+    color:var(--text) !important;
+  }
+
+  .fc .fc-button{
+    background:#fff !important;
+    border: 1px solid var(--line) !important;
+    color: var(--text) !important;
+    border-radius: 10px !important;
+    padding: 6px 10px !important;
+    box-shadow:none !important;
+  }
+
+  .fc .fc-button:hover{
+    background:#f6f9fc !important;
+  }
+
+  .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .fc .fc-button-primary:not(:disabled):active{
+    background:var(--primary-soft) !important;
+    border-color:var(--primary-line) !important;
+    color:#236fbe !important;
+  }
+
+  .fc .fc-daygrid-day-frame{
+    min-height:88px;
+    background:#fff;
+  }
+
+  .fc .fc-event{
+    border-radius:8px;
+    padding:2px 4px;
+    font-size:12px;
+    font-weight:700;
+  }
+
+  .fc .fc-event-title{
+    color:var(--text) !important;
+  }
+
+  #calendar{
+    min-height:700px;
+    margin-top:10px;
+  }
+
+  /* modal 共通 */
+  .modalBg{
+    position: fixed;
+    inset: 0;
+    background: rgba(31,45,61,.24);
+    display:none;
+    place-items:center;
+    padding: 16px;
+    z-index: 50;
+  }
+
+  .modal{
+    width: min(620px, 96vw);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background:#fff;
+    box-shadow: 0 20px 60px rgba(30,60,90,.18);
+    padding: 14px;
+  }
+
+  .modalHead{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .modalHead h3{
+    margin:0;
+    font-size: 14px;
+    letter-spacing:.3px;
+    color:var(--text);
+  }
+
+  .xbtn{
+    cursor:pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text);
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-weight: 900;
+  }
+
+  .xbtn:hover{
+    background:#f6f9fc;
+  }
+
+  .formGrid{
+    display:grid;
+    grid-template-columns: 1.2fr .9fr .9fr;
+    gap: 10px;
+    align-items:end;
+  }
+
+  @media (max-width:520px){
+    .formGrid{ grid-template-columns: 1fr; }
+  }
+
+  .modalActions{
+    display:flex;
+    gap: 10px;
+    justify-content:flex-end;
+    margin-top: 12px;
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="panel-header">
+    <div class="panel-title">
+      <div class="name" id="tankuName">--</div>
+      <div class="meta">
+        <span class="pill mono" id="tankuId">ID: --</span>
+        <span class="pill" id="tankuTpl">TPL: --</span>
+        <span class="pill mono" id="tankuPos">--</span>
+        <span class="pill" id="tankuAge">更新: --</span>
+      </div>
+    </div>
+
+    <div class="row-actions">
+      <button class="btn warn" onclick="openMoveModal()">ピン移動</button>
+      <button class="btn danger" onclick="deleteCurrent()">削除</button>
+      <a href="/logout" class="btn">ログアウト</a>
+      <button class="btn" onclick="goBack()">地図へ戻る</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>設定（名前 / 機械種別 / メモ）</h2>
+    <div class="formRow">
+      <div>
+        <div class="label">表示名</div>
+        <input id="setName" class="input" placeholder="例：笠間_タンク1">
+      </div>
+      <div>
+        <div class="label">機械種別（テンプレ）</div>
+        <select id="setTpl" class="input">
+          <option value="A">A（灌水）</option>
+          <option value="B">B（通信）</option>
+          <option value="C">C（タンク/制御）</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <div class="label">メモ</div>
+      <input id="setNote" class="input" placeholder="例：貯水槽 / フロート1 / ポンプ横">
+    </div>
+
+    <div class="row-actions" style="justify-content:flex-end; margin-top:10px;">
+      <button class="btn primary" onclick="saveSettings()">保存</button>
+    </div>
+
+    <div class="tiny">※ タンクでも名前やメモを後から変更できます。</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>タンク水位</h2>
+
+      <div class="tankHead">
+        <div class="title">WATER TANK</div>
+        <div class="pct"><span id="pct">--</span>%</div>
+      </div>
+
+      <svg viewBox="0 0 220 260" width="100%" height="auto" aria-label="tank">
+        <defs>
+          <linearGradient id="tankBody" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#ffd35a" stop-opacity=".95"/>
+            <stop offset="1" stop-color="#f2b82d" stop-opacity=".95"/>
+          </linearGradient>
+          <linearGradient id="waterGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#61dafb" stop-opacity=".95"/>
+            <stop offset="1" stop-color="#2aa8ff" stop-opacity=".95"/>
+          </linearGradient>
+          <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#6b7a8c" flood-opacity=".20"/>
+          </filter>
+          <clipPath id="clipTank">
+            <rect x="38" y="26" width="144" height="210" rx="18"/>
+          </clipPath>
+        </defs>
+
+        <g filter="url(#shadow)">
+          <rect x="30" y="18" width="160" height="226" rx="22" fill="url(#tankBody)" />
+          <rect x="78" y="6" width="64" height="18" rx="8" fill="#ffdd7a" opacity=".95"/>
+          <g opacity=".18">
+            <rect x="52" y="28" width="10" height="206" rx="5" fill="#000"/>
+            <rect x="74" y="28" width="10" height="206" rx="5" fill="#000"/>
+            <rect x="96" y="28" width="10" height="206" rx="5" fill="#000"/>
+            <rect x="118" y="28" width="10" height="206" rx="5" fill="#000"/>
+            <rect x="140" y="28" width="10" height="206" rx="5" fill="#000"/>
+            <rect x="162" y="28" width="10" height="206" rx="5" fill="#000"/>
+          </g>
+
+          <g clip-path="url(#clipTank)">
+            <rect id="water" x="38" y="236" width="144" height="0" fill="url(#waterGrad)"/>
+            <rect id="waterTop" x="38" y="236" width="144" height="4" fill="#baf1ff" opacity=".65"/>
+          </g>
+
+          <rect x="38" y="26" width="144" height="210" rx="18"
+                fill="none" stroke="rgba(31,45,61,.18)" stroke-width="2"/>
+        </g>
+      </svg>
+
+      <div class="tankMeta">
+        <div>level: <b id="levelTxt">--</b>/4</div>
+        <div class="badge" id="tankBadge">--</div>
+      </div>
+
+      <div class="tiny" style="margin-top:8px;">
+        ※ level = フロートON数（0〜4）→ 0/25/50/75/100%
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>スケジュール（月カレンダー）</h2>
+      <div class="tiny">
+        ・日付クリック → 追加（時刻/分数）<br>
+        ・予定クリック → 削除<br>
+        ✅ JSTズレ対策：サーバは「TZ無し(YYYY-MM-DDTHH:MM:SS)」で保存 → FullCalendarへも文字列で渡す
+      </div>
+      <div id="calendar"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Schedule modal -->
+<div class="modalBg" id="schModalBg" onclick="closeSchModalIfBg(event)">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3>スケジュール追加</h3>
+      <button class="xbtn" onclick="closeSchModal()">✕</button>
+    </div>
+
+    <div class="formGrid">
+      <div>
+        <div class="label">日付（JST）</div>
+        <input id="sDate" class="input" type="date">
+      </div>
+      <div>
+        <div class="label">開始時刻</div>
+        <input id="sTime" class="input" type="time" value="06:00">
+      </div>
+      <div>
+        <div class="label">分数</div>
+        <input id="sMins" class="input" type="number" min="1" max="180" value="3">
+      </div>
+    </div>
+
+    <div class="tiny" id="sPreview" style="margin-top:10px;">--</div>
+
+    <div class="modalActions">
+      <button class="btn" onclick="closeSchModal()">キャンセル</button>
+      <button class="btn primary" onclick="submitSchedule()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move modal -->
+<div class="modalBg" id="moveModalBg" onclick="closeMoveModalIfBg(event)">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3>ピン位置を移動</h3>
+      <button class="xbtn" onclick="closeMoveModal()">✕</button>
+    </div>
+
+    <div class="tiny" style="margin-bottom:10px;">
+      現在のデータやログは残したまま、地図上の位置だけ更新します。
+    </div>
+
+    <div class="card" style="margin-top:0;">
+      <h2 style="margin-bottom:8px;">緯度経度（WGS84）</h2>
+      <div class="formRow">
+        <div>
+          <div class="label">緯度 lat</div>
+          <input id="mvLat" class="input" placeholder="36.123456">
+        </div>
+        <div>
+          <div class="label">経度 lon</div>
+          <input id="mvLon" class="input" placeholder="140.123456">
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2 style="margin-bottom:8px;">RTK（JGD2011 平面直角：m）</h2>
+      <div class="formRow">
+        <div>
+          <div class="label">Zone（系）</div>
+          <select id="mvZone" class="input">
+            <option value="">選択</option>
+            <option value="1">1系</option><option value="2">2系</option><option value="3">3系</option>
+            <option value="4">4系</option><option value="5">5系</option><option value="6">6系</option>
+            <option value="7">7系</option><option value="8">8系</option><option value="9">9系</option>
+            <option value="10">10系</option><option value="11">11系</option><option value="12">12系</option>
+            <option value="13">13系</option><option value="14">14系</option><option value="15">15系</option>
+            <option value="16">16系</option><option value="17">17系</option><option value="18">18系</option>
+            <option value="19">19系</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <div style="flex:1;">
+          <div class="label">X (Easting) [m]</div>
+          <input id="mvJgd2011X" class="input" placeholder="例：123456.789">
+        </div>
+        <div style="flex:1;">
+          <div class="label">Y (Northing) [m]</div>
+          <input id="mvJgd2011Y" class="input" placeholder="例：123456.789">
+        </div>
+      </div>
+    </div>
+
+    <div class="modalActions">
+      <button class="btn" onclick="closeMoveModal()">キャンセル</button>
+      <button class="btn primary" onclick="submitMovePin()">この位置に移動</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   Utils
+========================= */
+const $ = (id)=>document.getElementById(id);
+
+let currentId = null;
+let PINS = {};
+let calendar = null;
+
+function getPinIdFromQuery(){
+  const sp = new URLSearchParams(location.search);
+  const v = sp.get("pin_id");
+  return v ? String(v) : null;
+}
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function levelToPercent(level){ return clamp(level*25, 0, 100); }
+
+function toLocalISO(d){
+  const pad = (n)=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function addMinutesLocal(startLocalStr, mins){
+  const d = new Date(startLocalStr);
+  d.setMinutes(d.getMinutes() + mins);
+  return toLocalISO(d);
+}
+function isFiniteNumberString(s){
+  if(s === null || s === undefined) return false;
+  const t = String(s).trim();
+  if(t === "") return false;
+  const n = Number(t);
+  return Number.isFinite(n);
+}
+
+/* =========================
+   Navigation
+========================= */
+function goBack(){
+  window.location.href = "/";
+}
+
+/* =========================
+   Pins + Header + Settings
+========================= */
+async function refreshPins(){
+  const r = await fetch("/api/pins", {cache:"no-store"});
+  if(!r.ok) throw new Error("pins fetch failed");
+  PINS = await r.json();
+}
+
+function setAgeText(ts){
+  if(!ts){ $("tankuAge").textContent = "更新: --"; return; }
+  const now = Math.floor(Date.now()/1000);
+  const age = Math.max(0, now - Number(ts));
+  $("tankuAge").textContent = `更新: ${age}s前`;
+}
+
+function renderHeader(dev){
+  $("tankuName").textContent = dev.name || "--";
+  $("tankuId").textContent = `ID: #${currentId}`;
+  $("tankuTpl").textContent = `TPL: ${dev.template || "--"}`;
+  $("tankuPos").textContent = `${Number(dev.lat).toFixed(6)}, ${Number(dev.lon).toFixed(6)}`;
+
+  $("setName").value = dev.name || "";
+  $("setTpl").value  = dev.template || "C";
+  $("setNote").value = dev.note || "";
+}
+
+async function refreshLatestAge(){
+  try{
+    const r = await fetch(`/api/latest/${encodeURIComponent(currentId)}`, {cache:"no-store"});
+    if(!r.ok) return setAgeText(null);
+    const js = await r.json();
+    setAgeText(js.ts || null);
+  }catch(e){
+    setAgeText(null);
+  }
+}
+
+async function saveSettings(){
+  if(!currentId) return alert("pin_id がありません");
+  const payload = {
+    name: $("setName").value.trim(),
+    template: $("setTpl").value,
+    note: $("setNote").value.trim()
+  };
+  if(!payload.name) return alert("表示名を入れて");
+
+  const r = await fetch(`/api/pins/${encodeURIComponent(currentId)}`, {
+    method:"PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  if(!r.ok){
+    const t = await r.text().catch(()=> "");
+    return alert("保存失敗\n" + t);
+  }
+
+  const res = await r.json().catch(()=> ({}));
+  const newMode = String(res.mode || payload.template || "").toUpperCase();
+
+  await refreshPins();
+  const dev = PINS[currentId];
+  if(dev) renderHeader(dev);
+
+  await refreshLatestAge();
+
+  if(newMode !== "C"){
+    window.location.href = `/?pin_id=${encodeURIComponent(currentId)}`;
+    return;
+  }
+
+  alert("保存しました");
+}
+
+/* =========================
+   Tank status
+========================= */
+function setTankFill(percent){
+  const H = 210;
+  const h = H * (percent/100);
+  const y = 26 + (H - h);
+  $("water").setAttribute("y", y);
+  $("water").setAttribute("height", h);
+  $("waterTop").setAttribute("y", y);
+}
+function setTankBadge(level){
+  if(level === 0){
+    $("tankBadge").className = "badge bad";
+    $("tankBadge").textContent = "EMPTY";
+  }else if(level === 1){
+    $("tankBadge").className = "badge warn";
+    $("tankBadge").textContent = "LOW";
+  }else if(level === 4){
+    $("tankBadge").className = "badge ok";
+    $("tankBadge").textContent = "FULL";
+  }else{
+    $("tankBadge").className = "badge ok";
+    $("tankBadge").textContent = "OK";
+  }
+}
+
+function inferLevelFromData(data){
+  const lv = data.level;
+  if(lv !== undefined && lv !== null && lv !== "") return Number(lv);
+
+  const keys = ["l1","l2","l3","l4"];
+  let sum = 0;
+  let any = false;
+  for(const k of keys){
+    if(data[k] === undefined || data[k] === null || data[k] === "") continue;
+    any = true;
+    const v = Number(data[k]);
+    if(Number.isFinite(v) && v > 0) sum += 1;
+  }
+  return any ? sum : 0;
+}
+
+async function refreshTank(){
+  try{
+    const r = await fetch(`/api/latest/${encodeURIComponent(currentId)}`, {cache:"no-store"});
+    if(!r.ok) return;
+
+    const js = await r.json();
+    setAgeText(js.ts || null);
+
+    const data = (js && js.data) ? js.data : {};
+    const level = clamp(inferLevelFromData(data), 0, 4);
+    const pct = levelToPercent(level);
+
+    $("pct").textContent = pct;
+    $("levelTxt").textContent = level;
+    setTankFill(pct);
+    setTankBadge(level);
+  }catch(e){
+    // ignore
+  }
+}
+
+/* =========================
+   Schedule
+========================= */
+async function fetchSchedule(){
+  const r = await fetch(`/api/schedule/${encodeURIComponent(currentId)}`, {cache:"no-store"});
+  if(!r.ok) throw new Error("schedule failed");
+  return await r.json();
+}
+async function postSchedule(start_local, minutes){
+  const r = await fetch(`/api/schedule/${encodeURIComponent(currentId)}`, {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ start_local, minutes })
+  });
+  if(!r.ok) throw new Error("schedule post failed");
+  return await r.json();
+}
+async function deleteSchedule(sid){
+  const r = await fetch(`/api/schedule/${encodeURIComponent(currentId)}/${encodeURIComponent(sid)}`, { method:"DELETE" });
+  if(!r.ok) throw new Error("schedule delete failed");
+  return await r.json();
+}
+
+function scheduleToEvents(items){
+  return (items || []).map(it => {
+    const startStr = String(it.start_local || "");
+    const mins = Number(it.minutes || 1);
+
+    const status = it.status || "scheduled";
+    const prefix = status === "scheduled" ? "💧" : (status === "executed" ? "✅" : "⛔");
+    const title = `${prefix} 灌水 ${mins}分`;
+
+    return {
+      id: it.id,
+      title,
+      start: startStr,
+      end: addMinutesLocal(startStr, mins),
+      allDay:false,
+      extendedProps:{ minutes:mins }
+    };
+  });
+}
+
+async function refreshCalendarEvents(){
+  if(!calendar || !currentId) return;
+  const sch = await fetchSchedule();
+  const events = scheduleToEvents(sch.items || []);
+  calendar.removeAllEvents();
+  events.forEach(ev => calendar.addEvent(ev));
+}
+
+function initCalendar(){
+  const el = $("calendar");
+  calendar = new FullCalendar.Calendar(el, {
+    initialView: "dayGridMonth",
+    locale: "ja",
+    timeZone: "Asia/Tokyo",
+    height: "auto",
+    headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek" },
+    dateClick: (info)=> openSchModal(info.dateStr),
+    eventClick: async (info)=>{
+      const sid = info.event.id;
+      const mins = info.event.extendedProps.minutes;
+      const when = info.event.start
+        ? info.event.start.toLocaleString("ja-JP", {year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})
+        : "";
+      const ok = confirm(`この予定を削除しますか？\n${when} / ${mins}分`);
+      if(!ok) return;
+      try{
+        await deleteSchedule(sid);
+        await refreshCalendarEvents();
+      }catch(e){ alert("削除失敗"); }
+    }
+  });
+  calendar.render();
+  setTimeout(() => calendar.updateSize(), 50);
+}
+
+function openSchModal(dateStr){
+  $("sDate").value = dateStr;
+  $("sTime").value = "06:00";
+  $("sMins").value = "3";
+  updateSchPreview();
+  $("schModalBg").style.display = "grid";
+}
+function closeSchModal(){ $("schModalBg").style.display = "none"; }
+function closeSchModalIfBg(ev){ if(ev.target && ev.target.id === "schModalBg") closeSchModal(); }
+function updateSchPreview(){
+  const d = $("sDate").value;
+  const t = $("sTime").value;
+  const m = Number($("sMins").value || 1);
+  $("sPreview").textContent = (!d || !t) ? "--" : `追加予定：${d} ${t} から ${m}分`;
+}
+["sDate","sTime","sMins"].forEach(id=>{
+  document.addEventListener("input", (e)=>{ if(e.target && e.target.id === id) updateSchPreview(); });
+});
+
+async function submitSchedule(){
+  const d = $("sDate").value;
+  const t = $("sTime").value;
+  const mins = Number($("sMins").value || 1);
+  if(!d || !t) return alert("日付と時刻を入れて");
+
+  const start_local = `${d}T${t}:00`;
+
+  try{
+    await postSchedule(start_local, clamp(mins, 1, 180));
+    closeSchModal();
+    await refreshCalendarEvents();
+  }catch(e){ alert("追加失敗"); }
+}
+
+/* =========================
+   Move pin
+========================= */
+function openMoveModal(){
+  if(!currentId || !PINS[currentId]) return;
+  const p = PINS[currentId];
+  $("mvLat").value = p.lat ?? "";
+  $("mvLon").value = p.lon ?? "";
+  $("mvZone").value = "";
+  $("mvJgd2011X").value = "";
+  $("mvJgd2011Y").value = "";
+  $("moveModalBg").style.display = "grid";
+}
+function closeMoveModal(){ $("moveModalBg").style.display = "none"; }
+function closeMoveModalIfBg(ev){ if(ev.target && ev.target.id === "moveModalBg") closeMoveModal(); }
+
+async function submitMovePin(){
+  if(!currentId) return;
+
+  const latStr = $("mvLat").value.trim();
+  const lonStr = $("mvLon").value.trim();
+  const zoneStr = $("mvZone").value.trim();
+  const xStr = $("mvJgd2011X").value.trim();
+  const yStr = $("mvJgd2011Y").value.trim();
+
+  let payload = {};
+  const hasLatLon = isFiniteNumberString(latStr) && isFiniteNumberString(lonStr);
+
+  if(hasLatLon){
+    payload.lat = +Number(latStr).toFixed(6);
+    payload.lon = +Number(lonStr).toFixed(6);
+  } else {
+    const hasRTK = zoneStr !== "" && isFiniteNumberString(xStr) && isFiniteNumberString(yStr);
+    if(!hasRTK){
+      return alert("移動先の座標を入れてください。\nlat/lon か、RTK (zone + X + Y) が必要です。");
+    }
+    payload.zone = zoneStr;
+    payload.jgd2011_x = Number(xStr);
+    payload.jgd2011_y = Number(yStr);
+  }
+
+  const r = await fetch(`/api/pins/${encodeURIComponent(currentId)}/move`, {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  if(!r.ok){
+    const t = await r.text().catch(()=> "");
+    return alert("ピン移動失敗\n" + t);
+  }
+
+  const js = await r.json();
+
+  if(PINS[currentId]){
+    PINS[currentId].lat = Number(js.lat);
+    PINS[currentId].lon = Number(js.lon);
+  }
+
+  await refreshPins();
+
+  if(Number.isFinite(Number(js.lat)) && Number.isFinite(Number(js.lon))){
+    $("tankuPos").textContent = `${Number(js.lat).toFixed(6)}, ${Number(js.lon).toFixed(6)}`;
+  }
+
+  closeMoveModal();
+  alert("ピン位置を更新しました");
+}
+
+/* =========================
+   Delete
+========================= */
+async function deleteCurrent(){
+  if(!currentId) return;
+
+  const ok = confirm(`このタンクを削除しますか？\nID: #${currentId}`);
+  if(!ok) return;
+
+  const r = await fetch(`/api/pins/${encodeURIComponent(currentId)}`, { method: "DELETE" });
+  if(!r.ok){
+    const t = await r.text().catch(()=> "");
+    alert("削除失敗\n" + t);
+    return;
+  }
+
+  alert("削除しました");
+  goBack();
+}
+
+/* =========================
+   Boot
+========================= */
+async function init(){
+  currentId = getPinIdFromQuery();
+  if(!currentId) return alert("例：/tanku?pin_id=1 のように pin_id が必要");
+
+  await refreshPins();
+  const dev = PINS[currentId];
+  if(!dev) return alert(`pin_id=${currentId} が見つかりません`);
+
+  renderHeader(dev);
+
+  initCalendar();
+  await refreshLatestAge();
+  await refreshTank();
+  await refreshCalendarEvents();
+
+  setInterval(async ()=>{
+    if(!currentId) return;
+    await refreshLatestAge();
+    await refreshTank();
+    await refreshCalendarEvents();
+  }, 5000);
+}
+init();
+</script>
+</body>
+</html>

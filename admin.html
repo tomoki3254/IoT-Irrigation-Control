@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>管理者ページ</title>
+<style>
+  :root{
+    --bg:#eef4f8;
+    --card:#ffffff;
+    --text:#1f2d3d;
+    --muted:#6b7a8c;
+    --line:#d7e2ec;
+    --primary:#4da3ff;
+    --primary-weak:#eaf4ff;
+    --danger:#e35d6a;
+    --shadow:0 16px 40px rgba(30,60,90,.10);
+    --radius:18px;
+    --pending:#8b95a7;
+    --farmer:#3fa66b;
+    --area:#f0a43a;
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:radial-gradient(circle at top left,#f8fbff 0%,#eef4f8 45%,#e6eef5 100%);
+    color:var(--text);
+    padding:22px;
+  }
+
+  .wrap{
+    max-width:1120px;
+    margin:0 auto;
+  }
+
+  .page-head{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:16px;
+  }
+
+  .titlebox h1{
+    margin:0;
+    font-size:24px;
+    color:var(--text);
+  }
+
+  .titlebox p{
+    margin:6px 0 0 0;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.6;
+  }
+
+  .top-links{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .top-links a{
+    text-decoration:none;
+    color:var(--primary);
+    font-weight:700;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 14px;
+    box-shadow:0 6px 16px rgba(30,60,90,.05);
+  }
+
+  .card{
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    background:var(--card);
+    margin-bottom:16px;
+    box-shadow:var(--shadow);
+  }
+
+  .card h2{
+    margin:0 0 8px 0;
+    font-size:18px;
+    color:var(--text);
+  }
+
+  .card .sub{
+    margin:0 0 14px 0;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.6;
+  }
+
+  .row{
+    display:grid;
+    grid-template-columns:1.2fr .9fr 1.1fr auto;
+    gap:12px;
+    align-items:end;
+  }
+
+  @media(max-width:820px){
+    .row{grid-template-columns:1fr}
+  }
+
+  label{
+    display:block;
+    margin-bottom:7px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--text);
+  }
+
+  select,input{
+    width:100%;
+    padding:12px 14px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--text);
+    outline:none;
+    font-size:14px;
+    transition:.18s ease;
+  }
+
+  select:focus,input:focus{
+    border-color:#7ab9ff;
+    box-shadow:0 0 0 4px rgba(77,163,255,.12);
+  }
+
+  button{
+    padding:12px 16px;
+    border:none;
+    border-radius:14px;
+    background:linear-gradient(135deg,#62b4ff,#4da3ff);
+    color:#fff;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(77,163,255,.22);
+    transition:transform .08s ease, opacity .18s ease;
+  }
+
+  button:hover{opacity:.96;}
+  button:active{transform:translateY(1px);}
+
+  .btn2{
+    background:linear-gradient(135deg,#ef7a86,#e35d6a);
+    box-shadow:0 10px 24px rgba(227,93,106,.20);
+  }
+
+  .help{
+    margin-top:12px;
+    padding:12px 14px;
+    border-radius:14px;
+    background:var(--primary-weak);
+    border:1px solid #d7e9ff;
+    color:#47627d;
+    font-size:13px;
+    line-height:1.7;
+  }
+
+  .table-wrap{
+    overflow:auto;
+    border:1px solid var(--line);
+    border-radius:14px;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    background:#fff;
+  }
+
+  th,td{
+    border-bottom:1px solid #e8eef4;
+    padding:12px 10px;
+    text-align:left;
+    vertical-align:middle;
+    white-space:nowrap;
+  }
+
+  th{
+    background:#f7fbff;
+    color:#466079;
+    font-weight:800;
+  }
+
+  tr:last-child td{
+    border-bottom:none;
+  }
+
+  .empty{
+    color:var(--muted);
+  }
+
+  .email-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    background:#f6faff;
+    border:1px solid #dce9f5;
+    border-radius:999px;
+    color:#35506a;
+    font-weight:700;
+  }
+
+  .pin-chip{
+    display:inline-block;
+    padding:5px 10px;
+    background:#eef6ff;
+    border:1px solid #d7e9ff;
+    border-radius:999px;
+    color:#35618c;
+    font-weight:800;
+  }
+
+  .role-badge{
+    display:inline-block;
+    padding:5px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:800;
+    color:#fff;
+  }
+
+  .role-pending{background:var(--pending);}
+  .role-farmer{background:var(--farmer);}
+  .role-area_admin{background:var(--area);}
+
+  a{
+    color:var(--primary);
+    text-decoration:none;
+    font-weight:700;
+  }
+
+  a:hover{text-decoration:underline;}
+
+  .inline-form{
+    margin:0;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-head">
+    <div class="titlebox">
+      <h1>管理者ページ</h1>
+      <p>新規登録ユーザーへの権限割り振りと、ピンの割り当て管理を行います。</p>
+    </div>
+    <div class="top-links">
+      <a href="/">地図へ戻る</a>
+      <a href="/logout">ログアウト</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>ユーザー振り分け ＋ ピン割り当て</h2>
+    <p class="sub">
+      新規登録されたユーザーに対して、<b>farmer</b> または <b>area_admin</b> を設定し、使用する pin_id を割り当てます。
+    </p>
+
+    <form method="post" action="/admin/assign">
+      <div class="row">
+        <div>
+          <label>ユーザー email</label>
+          <select name="email" required>
+            <option value="">選択してください</option>
+            {% for e in farmers %}
+              <option value="{{ e }}">{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label>権限</label>
+          <select name="role" required>
+            <option value="farmer">farmer</option>
+            <option value="area_admin">area_admin</option>
+          </select>
+        </div>
+
+        <div>
+          <label>未割当 pin_id</label>
+          <select name="pin_id" required>
+            <option value="">選択してください</option>
+            {% for p in unassigned %}
+              <option value="{{ p.pin_id }}">#{{ p.pin_id }} / {{ p.template }} / {{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <button type="submit">Assign</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="help">
+      新規登録ユーザーは最初は承認待ちです。ここで権限を割り振って pin_id を紐づけることで利用開始できます。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>現在の割り当て</h2>
+    <p class="sub">
+      すでに割り当て済みの一覧です。必要に応じて解除できます。
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ユーザーemail</th>
+            <th>role</th>
+            <th>pin_id</th>
+            <th>name</th>
+            <th>template</th>
+            <th>解除</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assigned %}
+          <tr>
+            <td><span class="email-chip">{{ a.email }}</span></td>
+            <td>
+              <span class="role-badge role-{{ a.role if a.role else 'pending' }}">
+                {{ a.role if a.role else 'pending' }}
+              </span>
+            </td>
+            <td><span class="pin-chip">#{{ a.pin_id }}</span></td>
+            <td>{{ a.name }}</td>
+            <td>{{ a.template }}</td>
+            <td>
+              <form class="inline-form" method="post" action="/admin/unassign">
+                <input type="hidden" name="pin_id" value="{{ a.pin_id }}">
+                <button class="btn2" type="submit">解除</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+
+          {% if assigned|length == 0 %}
+          <tr>
+            <td colspan="6" class="empty">まだ割り当てがありません</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
