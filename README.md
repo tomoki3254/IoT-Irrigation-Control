@@ -47,6 +47,14 @@ The detailed prediction algorithm is under development.
 This repository is a public portfolio version.
 Sensitive information such as credentials, tokens, and production configurations has been removed.
 
+## Third-Party Components
+
+This system utilizes a 429MHz wireless communication module provided by Circuit Design, Inc.
+The hardware and underlying radio communication technology are the intellectual property of the company.
+
+This project focuses on system design and software implementation built on top of these modules.
+
+
 ## License
 
 This project is created for portfolio purposes.
