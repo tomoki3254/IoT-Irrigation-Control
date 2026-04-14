@@ -1,5 +1,31 @@
 # IoT Irrigation Control System
 
+## Notes for Public Repository
+
+This repository contains the core logic of the irrigation control system for public demonstration.
+
+For security and privacy reasons, the public version omits parts related to:
+- user login / logout
+- signup
+- session-based authentication
+- admin account management
+- role-based access control
+- owner / pin access assignment
+
+These features exist in the private production version, but are intentionally excluded here to avoid exposing sensitive implementation details and credentials.
+
+The public code focuses on the core technical components:
+- pin registration and coordinate handling
+- telemetry collection
+- log storage
+- command distribution to devices
+- ACK handling
+- schedule management
+- CSV export
+- gateway pull API
+- device communication flow
+
+
 ## Overview
 
 This project is a smart irrigation system developed from web application to microcontroller control.
